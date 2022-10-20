@@ -301,8 +301,9 @@ public final class Smarts {
             if (peek() == ':') {
                 next();
                 int num = nextUnsignedInt();
-                if (num < 0) {
+                if (num <= 0) {
                     pos = mark;
+                    error = "map idx should >0";
                     return false;
                 }
                 atom.setProperty(CDKConstants.ATOM_ATOM_MAPPING, num);
@@ -1350,10 +1351,11 @@ public final class Smarts {
                         if (expr == null)
                             return false;
                         num = nextUnsignedInt();
-                        if (num < 0)
+                        if (num <= 0) {
+                            error = "map idx should >0";
                             return false;
-                        if (num != 0)
-                            atom.setProperty(CDKConstants.ATOM_ATOM_MAPPING, num);
+                        }
+                        atom.setProperty(CDKConstants.ATOM_ATOM_MAPPING, num);
                         // should be add end of expr
                         if (lastOp != 0)
                             return peek() == ']';
@@ -1509,7 +1511,10 @@ public final class Smarts {
             atom.setExpression(expr);
             if (!parseExplicitHydrogen(atom, expr) &&
                 !parseAtomExpr(atom, expr, '\0')) {
-                error = "Invalid atom expression";
+                if (error != null)
+                    error = "Invalid atom expression: " + error;
+                else
+                    error = "Invalid atom expression";
                 return false;
             }
             append(atom);
@@ -2948,7 +2953,7 @@ public final class Smarts {
                         throw new IllegalArgumentException();
                     break;
                 default:
-                    throw new IllegalArgumentException();
+                    throw new IllegalArgumentException("Unsupported type" + expr.type());
             }
         }
 
@@ -3083,6 +3088,8 @@ public final class Smarts {
                     return generateAtom(atom, expr.right());
                 if (expr.right().type() == Expr.Type.REACTION_ROLE)
                     return generateAtom(atom, expr.left());
+            } else if (expr.type() == REACTION_ROLE) {
+                return generateAtom(atom, new Expr(TRUE));
             }
 
             int mapidx = atom != null ? mapidx(atom) : 0;
